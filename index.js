@@ -329,6 +329,70 @@ app.post("/api/metode-pembayaran", async (req, res) => {
   }
 });
 
+app.post("/api/order-setting", async (req, res) => {
+  const { email, id, setting_key, setting_value } = req.body;
+  // id = order_settings_id dari database lokal
+
+  if (!email || !id || !setting_key) {
+    return res.status(400).json({ message: "invalid payload" });
+  }
+
+  try {
+    // 1️⃣ Ambil user_id dari email
+    const [users] = await db.query(
+      "SELECT id FROM user WHERE email = ? LIMIT 1",
+      [email]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: "user not found" });
+    }
+
+    const user_id = users[0].id;
+
+    // 2️⃣ Cek apakah setting sudah ada
+    const [existing] = await db.query(
+      `
+      SELECT id
+      FROM order_settings
+      WHERE user_id = ? AND order_settings_id = ?
+      LIMIT 1
+      `,
+      [user_id, id]
+    );
+
+    if (existing.length > 0) {
+      // 3a️⃣ UPDATE
+      await db.query(
+        `
+        UPDATE order_settings
+        SET 
+          setting_key = ?,
+          setting_value = ?
+        WHERE user_id = ? AND order_settings_id = ?
+        `,
+        [setting_key, setting_value, user_id, id]
+      );
+    } else {
+      // 3b️⃣ INSERT
+      await db.query(
+        `
+        INSERT INTO order_settings
+          (user_id, order_settings_id, setting_key, setting_value)
+        VALUES
+          (?, ?, ?, ?)
+        `,
+        [user_id, id, setting_key, setting_value]
+      );
+    }
+
+    res.json({ status: "ok" });
+  } catch (err) {
+    console.error("ERROR /api/order-setting:", err);
+    res.status(500).json({ message: "server error" });
+  }
+});
+
 // =======================
 // START SERVER
 // =======================
