@@ -202,6 +202,68 @@ app.post("/api/kategori", async (req, res) => {
   }
 });
 
+app.post("/api/merek", async (req, res) => {
+  const { email, id, nama } = req.body;
+  // id = merek_id dari lokal
+
+  if (!email || !id || !nama) {
+    return res.status(400).json({ message: "invalid payload" });
+  }
+
+  try {
+    // 1. Ambil user_id dari email
+    const [users] = await db.query(
+      "SELECT id FROM user WHERE email = ? LIMIT 1",
+      [email]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: "user not found" });
+    }
+
+    const user_id = users[0].id;
+
+    // 2. Cek merek sudah ada atau belum
+    const [existing] = await db.query(
+      `
+      SELECT id 
+      FROM merek 
+      WHERE user_id = ? AND merek_id = ?
+      LIMIT 1
+      `,
+      [user_id, id]
+    );
+
+    if (existing.length > 0) {
+      // 3a. UPDATE
+      await db.query(
+        `
+        UPDATE merek
+        SET nama = ?
+        WHERE user_id = ? AND merek_id = ?
+        `,
+        [nama, user_id, id]
+      );
+    } else {
+      // 3b. INSERT
+      await db.query(
+        `
+        INSERT INTO merek
+          (user_id, merek_id, nama)
+        VALUES
+          (?, ?, ?)
+        `,
+        [user_id, id, nama]
+      );
+    }
+
+    res.json({ status: "ok" });
+  } catch (err) {
+    console.error("ERROR /api/merek:", err);
+    res.status(500).json({ message: "server error" });
+  }
+});
+
 // =======================
 // START SERVER
 // =======================
