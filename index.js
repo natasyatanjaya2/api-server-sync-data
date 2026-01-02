@@ -41,7 +41,9 @@ app.get("/", (req, res) => {
 // =======================
 app.post("/api/user", async (req, res) => {
   try {
-    const { email, username, no_telepon } = req.body;
+    console.log("HIT /api/user BODY:", req.body);
+
+    const { email } = req.body;
 
     if (!email) {
       return res.status(400).json({ message: "Email wajib" });
@@ -57,22 +59,18 @@ app.post("/api/user", async (req, res) => {
       return res.json({ status: "exists" });
     }
 
-    // insert user baru
+    // insert user baru (email saja)
     await db.query(
       `
-      INSERT INTO user (email, username, no_telepon, created_at)
-      VALUES (?, ?, ?, NOW())
+      INSERT INTO user (email)
+      VALUES (?)
       `,
-      [
-        email,
-        username || email.split("@")[0],
-        no_telepon || null,
-      ]
+      [email]
     );
 
     res.json({ status: "created" });
   } catch (err) {
-    console.error(err);
+    console.error("ERROR /api/user:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
