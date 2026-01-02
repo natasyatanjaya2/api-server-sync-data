@@ -39,7 +39,7 @@ app.get("/", (req, res) => {
 // =======================
 // REGISTER USER (ONLY THIS FEATURE)
 // =======================
-app.post("/api/userr", async (req, res) => {
+app.post("/api/user", async (req, res) => {
   try {
     const { email, username, no_telepon } = req.body;
 
