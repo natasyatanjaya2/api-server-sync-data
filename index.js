@@ -23,6 +23,8 @@ const db = mysql.createPool({
 // =======================
 app.use((req, res, next) => {
   const apiKey = req.headers["x-api-key"];
+  console.log("HEADER X-API-KEY:", req.headers["x-api-key"]);
+  console.log("ENV API_KEY:", process.env.API_KEY);
   if (apiKey !== process.env.API_KEY) {
     return res.status(401).json({ message: "Unauthorized" });
   }
