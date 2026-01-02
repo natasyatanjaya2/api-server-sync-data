@@ -264,6 +264,71 @@ app.post("/api/merek", async (req, res) => {
   }
 });
 
+app.post("/api/metode-pembayaran", async (req, res) => {
+  const { email, id, nama_metode, no_rekening, atas_nama } = req.body;
+  // id = metode_pembayaran_id dari lokal
+
+  if (!email || !id || !nama_metode) {
+    return res.status(400).json({ message: "invalid payload" });
+  }
+
+  try {
+    // 1️⃣ Ambil user_id dari email
+    const [users] = await db.query(
+      "SELECT id FROM user WHERE email = ? LIMIT 1",
+      [email]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: "user not found" });
+    }
+
+    const user_id = users[0].id;
+
+    // 2️⃣ Cek apakah metode pembayaran sudah ada
+    const [existing] = await db.query(
+      `
+      SELECT id
+      FROM metode_pembayaran
+      WHERE user_id = ? AND metode_pembayaran_id = ?
+      LIMIT 1
+      `,
+      [user_id, id]
+    );
+
+    if (existing.length > 0) {
+      // 3a️⃣ UPDATE jika sudah ada
+      await db.query(
+        `
+        UPDATE metode_pembayaran
+        SET 
+          nama_metode = ?,
+          no_rekening = ?,
+          atas_nama = ?
+        WHERE user_id = ? AND metode_pembayaran_id = ?
+        `,
+        [nama_metode, no_rekening, atas_nama, user_id, id]
+      );
+    } else {
+      // 3b️⃣ INSERT jika belum ada
+      await db.query(
+        `
+        INSERT INTO metode_pembayaran
+          (user_id, metode_pembayaran_id, nama_metode, no_rekening, atas_nama)
+        VALUES
+          (?, ?, ?, ?, ?)
+        `,
+        [user_id, id, nama_metode, no_rekening, atas_nama]
+      );
+    }
+
+    res.json({ status: "ok" });
+  } catch (err) {
+    console.error("ERROR /api/metode-pembayaran:", err);
+    res.status(500).json({ message: "server error" });
+  }
+});
+
 // =======================
 // START SERVER
 // =======================
