@@ -455,6 +455,97 @@ app.post("/api/pembelian", async (req, res) => {
   }
 });
 
+app.post("/api/settings-toko", async (req, res) => {
+  const {
+    email,
+    id,
+    nama_toko,
+    jenis_usaha,
+    deskripsi,
+    alamat,
+    no_telepon
+  } = req.body;
+  // id = settings_toko_id dari database lokal
+
+  if (!email || !id || !nama_toko) {
+    return res.status(400).json({ message: "invalid payload" });
+  }
+
+  try {
+    // 1️⃣ Ambil user_id dari email
+    const [users] = await db.query(
+      "SELECT id FROM user WHERE email = ? LIMIT 1",
+      [email]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: "user not found" });
+    }
+
+    const user_id = users[0].id;
+
+    // 2️⃣ Cek apakah settings toko sudah ada
+    const [existing] = await db.query(
+      `
+      SELECT id
+      FROM settings_toko
+      WHERE user_id = ? AND settings_toko_id = ?
+      LIMIT 1
+      `,
+      [user_id, id]
+    );
+
+    if (existing.length > 0) {
+      // 3a️⃣ UPDATE
+      await db.query(
+        `
+        UPDATE settings_toko
+        SET
+          nama_toko = ?,
+          jenis_usaha = ?,
+          deskripsi = ?,
+          alamat = ?,
+          no_telepon = ?
+        WHERE user_id = ? AND settings_toko_id = ?
+        `,
+        [
+          nama_toko,
+          jenis_usaha,
+          deskripsi,
+          alamat,
+          no_telepon,
+          user_id,
+          id
+        ]
+      );
+    } else {
+      // 3b️⃣ INSERT
+      await db.query(
+        `
+        INSERT INTO settings_toko
+          (user_id, settings_toko_id, nama_toko, jenis_usaha, deskripsi, alamat, no_telepon)
+        VALUES
+          (?, ?, ?, ?, ?, ?, ?)
+        `,
+        [
+          user_id,
+          id,
+          nama_toko,
+          jenis_usaha,
+          deskripsi,
+          alamat,
+          no_telepon
+        ]
+      );
+    }
+
+    res.json({ status: "ok" });
+  } catch (err) {
+    console.error("ERROR /api/settings-toko:", err);
+    res.status(500).json({ message: "server error" });
+  }
+});
+
 // =======================
 // START SERVER
 // =======================
