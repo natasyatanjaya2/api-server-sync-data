@@ -546,6 +546,79 @@ app.post("/api/settings-toko", async (req, res) => {
   }
 });
 
+app.post("/api/settings-jam-operasional", async (req, res) => {
+  const {
+    email,
+    id,
+    hari,
+    jam_buka,
+    jam_tutup,
+    aktif
+  } = req.body;
+  // id = settings_jam_operasional_id dari database lokal
+
+  if (!email || !id || !hari) {
+    return res.status(400).json({ message: "invalid payload" });
+  }
+
+  try {
+    // 1️⃣ Ambil user_id dari email
+    const [users] = await db.query(
+      "SELECT id FROM user WHERE email = ? LIMIT 1",
+      [email]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: "user not found" });
+    }
+
+    const user_id = users[0].id;
+
+    // 2️⃣ Cek apakah jam operasional sudah ada
+    const [existing] = await db.query(
+      `
+      SELECT id
+      FROM settings_jam_operasional
+      WHERE user_id = ? AND settings_jam_operasional_id = ?
+      LIMIT 1
+      `,
+      [user_id, id]
+    );
+
+    if (existing.length > 0) {
+      // 3a️⃣ UPDATE
+      await db.query(
+        `
+        UPDATE settings_jam_operasional
+        SET
+          hari = ?,
+          jam_buka = ?,
+          jam_tutup = ?,
+          aktif = ?
+        WHERE user_id = ? AND settings_jam_operasional_id = ?
+        `,
+        [hari, jam_buka, jam_tutup, aktif, user_id, id]
+      );
+    } else {
+      // 3b️⃣ INSERT
+      await db.query(
+        `
+        INSERT INTO settings_jam_operasional
+          (user_id, settings_jam_operasional_id, hari, jam_buka, jam_tutup, aktif)
+        VALUES
+          (?, ?, ?, ?, ?, ?)
+        `,
+        [user_id, id, hari, jam_buka, jam_tutup, aktif]
+      );
+    }
+
+    res.json({ status: "ok" });
+  } catch (err) {
+    console.error("ERROR /api/settings-jam-operasional:", err);
+    res.status(500).json({ message: "server error" });
+  }
+});
+
 // =======================
 // START SERVER
 // =======================
