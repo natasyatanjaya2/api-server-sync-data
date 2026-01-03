@@ -623,11 +623,16 @@ app.post("/api/pesanan-online", async (req, res) => {
   const {
     email,
     id,
+    nama,
+    alamat_pengiriman,
+    no_hp,
     jumlah_produk,
     catatan_tambahan,
     status_order,
     tanggal_order,
-    metode_pembayaran_id
+    metode_pembayaran_id,
+    ref_no,
+    bukti_transfer
   } = req.body;
   // id = pesanan_online_id dari lokal / bot
 
@@ -660,24 +665,34 @@ app.post("/api/pesanan-online", async (req, res) => {
     );
 
     if (existing.length > 0) {
-      // 3a️⃣ UPDATE (status bisa berubah)
+      // 3a️⃣ UPDATE
       await db.query(
         `
         UPDATE pesanan_online
         SET
+          nama = ?,
+          alamat_pengiriman = ?,
+          no_hp = ?,
           jumlah_produk = ?,
           catatan_tambahan = ?,
           status_order = ?,
           tanggal_order = ?,
-          metode_pembayaran_id = ?
+          metode_pembayaran_id = ?,
+          ref_no = ?,
+          bukti_transfer = ?
         WHERE user_id = ? AND pesanan_online_id = ?
         `,
         [
+          nama,
+          alamat_pengiriman,
+          no_hp,
           jumlah_produk,
           catatan_tambahan,
           status_order,
           tanggal_order,
           metode_pembayaran_id,
+          ref_no,
+          bukti_transfer,
           user_id,
           id
         ]
@@ -687,19 +702,36 @@ app.post("/api/pesanan-online", async (req, res) => {
       await db.query(
         `
         INSERT INTO pesanan_online
-          (user_id, pesanan_online_id, jumlah_produk, catatan_tambahan,
-           status_order, tanggal_order, metode_pembayaran_id)
+          (
+            user_id,
+            pesanan_online_id,
+            nama,
+            alamat_pengiriman,
+            no_hp,
+            jumlah_produk,
+            catatan_tambahan,
+            status_order,
+            tanggal_order,
+            metode_pembayaran_id,
+            ref_no,
+            bukti_transfer
+          )
         VALUES
-          (?, ?, ?, ?, ?, ?, ?)
+          (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
         [
           user_id,
           id,
+          nama,
+          alamat_pengiriman,
+          no_hp,
           jumlah_produk,
           catatan_tambahan,
           status_order,
           tanggal_order,
-          metode_pembayaran_id
+          metode_pembayaran_id,
+          ref_no,
+          bukti_transfer
         ]
       );
     }
