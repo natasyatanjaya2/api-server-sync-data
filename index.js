@@ -393,6 +393,68 @@ app.post("/api/order-setting", async (req, res) => {
   }
 });
 
+app.post("/api/pembelian", async (req, res) => {
+  const { email, id, tanggal } = req.body;
+  // id = pembelian_id dari database lokal
+
+  if (!email || !id || !tanggal) {
+    return res.status(400).json({ message: "invalid payload" });
+  }
+
+  try {
+    // 1️⃣ Ambil user_id dari email
+    const [users] = await db.query(
+      "SELECT id FROM user WHERE email = ? LIMIT 1",
+      [email]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: "user not found" });
+    }
+
+    const user_id = users[0].id;
+
+    // 2️⃣ Cek apakah pembelian sudah ada
+    const [existing] = await db.query(
+      `
+      SELECT id
+      FROM pembelian
+      WHERE user_id = ? AND pembelian_id = ?
+      LIMIT 1
+      `,
+      [user_id, id]
+    );
+
+    if (existing.length > 0) {
+      // 3a️⃣ UPDATE
+      await db.query(
+        `
+        UPDATE pembelian
+        SET tanggal = ?
+        WHERE user_id = ? AND pembelian_id = ?
+        `,
+        [tanggal, user_id, id]
+      );
+    } else {
+      // 3b️⃣ INSERT
+      await db.query(
+        `
+        INSERT INTO pembelian
+          (user_id, pembelian_id, tanggal)
+        VALUES
+          (?, ?, ?)
+        `,
+        [user_id, id, tanggal]
+      );
+    }
+
+    res.json({ status: "ok" });
+  } catch (err) {
+    console.error("ERROR /api/pembelian:", err);
+    res.status(500).json({ message: "server error" });
+  }
+});
+
 // =======================
 // START SERVER
 // =======================
