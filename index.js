@@ -619,6 +619,98 @@ app.post("/api/settings-jam-operasional", async (req, res) => {
   }
 });
 
+app.post("/api/pesanan-online", async (req, res) => {
+  const {
+    email,
+    id,
+    jumlah_produk,
+    catatan_tambahan,
+    status_order,
+    tanggal_order,
+    metode_pembayaran_id
+  } = req.body;
+  // id = pesanan_online_id dari lokal / bot
+
+  if (!email || !id || !status_order || !tanggal_order) {
+    return res.status(400).json({ message: "invalid payload" });
+  }
+
+  try {
+    // 1️⃣ Ambil user_id
+    const [users] = await db.query(
+      "SELECT id FROM user WHERE email = ? LIMIT 1",
+      [email]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: "user not found" });
+    }
+
+    const user_id = users[0].id;
+
+    // 2️⃣ Cek apakah pesanan sudah ada
+    const [existing] = await db.query(
+      `
+      SELECT id
+      FROM pesanan_online
+      WHERE user_id = ? AND pesanan_online_id = ?
+      LIMIT 1
+      `,
+      [user_id, id]
+    );
+
+    if (existing.length > 0) {
+      // 3a️⃣ UPDATE (status bisa berubah)
+      await db.query(
+        `
+        UPDATE pesanan_online
+        SET
+          jumlah_produk = ?,
+          catatan_tambahan = ?,
+          status_order = ?,
+          tanggal_order = ?,
+          metode_pembayaran_id = ?
+        WHERE user_id = ? AND pesanan_online_id = ?
+        `,
+        [
+          jumlah_produk,
+          catatan_tambahan,
+          status_order,
+          tanggal_order,
+          metode_pembayaran_id,
+          user_id,
+          id
+        ]
+      );
+    } else {
+      // 3b️⃣ INSERT
+      await db.query(
+        `
+        INSERT INTO pesanan_online
+          (user_id, pesanan_online_id, jumlah_produk, catatan_tambahan,
+           status_order, tanggal_order, metode_pembayaran_id)
+        VALUES
+          (?, ?, ?, ?, ?, ?, ?)
+        `,
+        [
+          user_id,
+          id,
+          jumlah_produk,
+          catatan_tambahan,
+          status_order,
+          tanggal_order,
+          metode_pembayaran_id
+        ]
+      );
+    }
+
+    res.json({ status: "ok" });
+  } catch (err) {
+    console.error("ERROR /api/pesanan-online:", err);
+    res.status(500).json({ message: "server error" });
+  }
+});
+
 // =======================
 // START SERVER
 // =======================
